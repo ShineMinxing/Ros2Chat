@@ -166,7 +166,7 @@ class VoiceChatNode(Node):
             self.control_callback,
             10
         )
-        self.publisher = self.create_publisher(Float64MultiArray, 'SMXFE/SportCmd', 10)
+        self.publisher = self.create_publisher(Float64MultiArray, 'SMX/SportCmd', 10)
 
         self.get_logger().info("VoiceChatNode 已启动")
 
@@ -269,7 +269,7 @@ class VoiceChatNode(Node):
         msg = Float64MultiArray()
         msg.data = [float(Action), float(Value1), float(Value2), float(Value3), float(Value4)]
         self.publisher.publish(msg)
-        self.get_logger().info(f"发布消息 SMXFE/SportCmd: {msg.data}")
+        self.get_logger().info(f"发布消息 SMX/SportCmd: {msg.data}")
 
 
 # =============== 7. 后台线程：实时录音 & 实时识别 ===============
