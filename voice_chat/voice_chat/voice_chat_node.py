@@ -21,16 +21,25 @@ import pygame
 from vosk import Model, KaldiRecognizer
 import pyttsx3
 
+import yaml
 
 # =============== 1. 配置信息 ===============
-API_KEY = "sk-nftsgxpdsrdnnbgdzralzbewmhiylqkhrjthtugvlbyqaiph"  # 替换成你的API Key
-BASE_URL = "https://api.siliconflow.cn/v1"
+# 读取 YAML 配置文件
+config_file = Path("src/Ros2Chat/config.yaml")
+if not config_file.exists():
+    raise FileNotFoundError(f"配置文件不存在: {config_file}")
 
-# 大模型（聊天）
-MODEL_CHAT = "deepseek-ai/DeepSeek-V2.5"
-# TTS 模型
-MODEL_VOICE = "FunAudioLLM/CosyVoice2-0.5B"
-VOICE_NAME = "FunAudioLLM/CosyVoice2-0.5B:david"
+with open(config_file, "r", encoding="utf-8") as file:
+    config = yaml.safe_load(file)
+
+# 从配置文件中加载设置
+API_KEY = config.get("API_KEY")
+BASE_URL = config.get("BASE_URL")
+MODEL_CHAT = config.get("MODEL_CHAT")
+MODEL_VOICE = config.get("MODEL_VOICE")
+VOICE_NAME = config.get("VOICE_NAME")
+ROBOT_NAME = config.get("ROBOT_NAME")
+ROBOT_SETTING = config.get("ROBOT_SETTING")
 
 # 初始化 OpenAI 客户端（如果你需要代理，可在此配置）
 client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
@@ -104,7 +113,7 @@ def get_model_response(user_text: str):
         response = client.chat.completions.create(
             model=MODEL_CHAT,
             messages=[
-                {"role": "system", "content": "你毕加索公司的四足机器狗，名字叫做来福。你用中文回答问题，有趣又调皮，回答很简短，喜欢汪汪叫。当你收到一段话，首先你会判断是想让你执行任务还是与你聊天。可能的任务有4个，分别是“去办公室”，“去会议室”，“去厕所”，“去仓库”。如果是在给你任务，你只需要回复“任务：去办公室”，“任务：去会议室”，“任务：去厕所”，“任务：去仓库”，不要回复任何多余的文字。如果是在与你聊天，你就按照你的性格正常回复。"},
+                {"role": "system", "content": ROBOT_SETTING},
                 {"role": "user", "content": user_text}
             ],
             temperature=0.7,
@@ -153,7 +162,7 @@ class VoiceChatNode(Node):
         super().__init__('voice_chat_node')
         self.subscription = self.create_subscription(
             String,
-            'SMXFE/ModeCmd',
+            'SMX/JoystickCmd',
             self.control_callback,
             10
         )
@@ -268,7 +277,7 @@ class SpeechListener(threading.Thread):
     """
     持续从麦克风读取音频，使用 Vosk KaldiRecognizer 做实时识别：
     1. 打印部分识别结果（partial result）。
-    2. 如果未录音且出现“来福”则自动start。
+    2. 如果未录音且出现‘ROBOT_NAME’则自动start。
     3. 如果已录音且检测到长时间静音（认为语音结束）则自动stop。
     """
 
@@ -288,7 +297,7 @@ class SpeechListener(threading.Thread):
         )
         self.stream.start_stream()
 
-        # 用完整词汇模式识别（不是只含“来福”）
+        # 用完整词汇模式识别（不是只含‘ROBOT_NAME’）
         self.recognizer = KaldiRecognizer(vosk_model, RATE)
         self.last_speech_time = time.time()
 
@@ -319,9 +328,9 @@ class SpeechListener(threading.Thread):
                     print(f"[Final] {text}")  # 打印最终文本
                     self.last_speech_time = time.time()
 
-                    # 如果没在录音且识别里出现“来福”，则自动start
-                    if (not self.node.recording) and ("来福" in text):
-                        self.node.get_logger().info("full_result检测到唤醒词：来福")
+                    # 如果没在录音且识别里出现‘ROBOT_NAME’，则自动start
+                    if (not self.node.recording) and (ROBOT_NAME in text):
+                        self.node.get_logger().info("full_result检测到唤醒词：‘ROBOT_NAME’")
                         self.node.control_callback(String(data="start"))
 
             else:
@@ -331,10 +340,10 @@ class SpeechListener(threading.Thread):
                 if partial_text:
                     # print(f"[Partial] {partial_text}")
 
-                    # 如果没在录音且出现“来福”，也可以在partial里判断
+                    # 如果没在录音且出现‘ROBOT_NAME’，也可以在partial里判断
                     # （可选，如果想更灵敏地触发）
-                    if (not self.node.recording) and ("来福" in partial_text):
-                        self.node.get_logger().info("partial_result检测到唤醒词：来福 (partial)")
+                    if (not self.node.recording) and (ROBOT_NAME in partial_text):
+                        self.node.get_logger().info("partial_result检测到唤醒词：‘ROBOT_NAME’ (partial)")
                         self.node.control_callback(String(data="start"))
 
                     # 如果正在录音，就更新 last_speech_time

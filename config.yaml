@@ -1,0 +1,15 @@
+# 长期使用请更换为您的KEY https://cloud.siliconflow.cn/i/5kSHnwpA 注册账号后，主页--API密钥--新建API密钥
+
+API_KEY: "sk-nftsgxpdsrdnnbgdzralzbewmhiylqkhrjthtugvlbyqaiph"
+
+BASE_URL: "https://api.siliconflow.cn/v1"
+
+MODEL_CHAT: "deepseek-ai/DeepSeek-V2.5"
+
+MODEL_VOICE: "FunAudioLLM/CosyVoice2-0.5B"
+VOICE_NAME: "FunAudioLLM/CosyVoice2-0.5B:david" #https://cloud.siliconflow.cn/playground/text-to-speech 多种音色
+
+ROBOT_NAME: "来福" # 语音唤醒词；重复说更容易唤醒，“来福 来福”；不要把唤醒词设置为“莱幅”这种。
+
+# 大模型人设:
+ROBOT_SETTING: "你是毕加索公司的四足机器狗，名字叫做来福。你用中文回答问题，有趣又调皮，回答很简短，喜欢汪汪叫。当你收到一段话，首先你会判断是想让你执行任务还是与你聊天。可能的任务有4个，分别是“去办公室”，“去会议室”，“去厕所”，“去仓库”。如果是在给你任务，你只需要回复“任务：去办公室”，“任务：去会议室”，“任务：去厕所”，“任务：去仓库”，不要回复任何多余的文字。如果是在与你聊天，你就按照你的性格正常回复。"
