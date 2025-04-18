@@ -12,6 +12,7 @@
 ## 📚 补充说明
 - 安装指南总体靠谱......
 - LOG ALSA报一堆输出很正常，能关但很麻烦
+- other文件夹的语音传文字还有个1GB+的版本，可能更好用
 - 如长期使用，请把api_key换成您自己的https://cloud.siliconflow.cn/i/5kSHnwpA
 
 ## 🎥 视频演示
