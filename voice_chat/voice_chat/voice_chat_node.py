@@ -12,7 +12,7 @@ import json
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-from std_msgs.msg import Float64MultiArray
+from std_msgs.msg import Float32MultiArray
 
 import pyaudio
 from openai import OpenAI
@@ -166,7 +166,7 @@ class VoiceChatNode(Node):
             self.control_callback,
             10
         )
-        self.publisher = self.create_publisher(Float64MultiArray, 'SMX/SportCmd', 10)
+        self.publisher = self.create_publisher(Float32MultiArray, 'SMX/SportCmd', 10)
 
         self.get_logger().info("VoiceChatNode 已启动")
 
@@ -266,7 +266,7 @@ class VoiceChatNode(Node):
             self.get_logger().warn("当前未在录音状态")
 
     def publish_sport_cmd(self, Action, Value1, Value2, Value3, Value4):
-        msg = Float64MultiArray()
+        msg = Float32MultiArray()
         msg.data = [float(Action), float(Value1), float(Value2), float(Value3), float(Value4)]
         self.publisher.publish(msg)
         self.get_logger().info(f"发布消息 SMX/SportCmd: {msg.data}")
