@@ -14,6 +14,7 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from std_msgs.msg import Float64MultiArray
 
+import httpx
 import pyaudio
 from openai import OpenAI
 from pydub import AudioSegment
@@ -28,21 +29,37 @@ import yaml
 config_file = Path("src/Ros2Chat/config.yaml")
 if not config_file.exists():
     raise FileNotFoundError(f"配置文件不存在: {config_file}")
-
 with open(config_file, "r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
-# 从配置文件中加载设置
-API_KEY = config.get("API_KEY")
-BASE_URL = config.get("BASE_URL")
-MODEL_CHAT = config.get("MODEL_CHAT")
-MODEL_VOICE = config.get("MODEL_VOICE")
-VOICE_NAME = config.get("VOICE_NAME")
-ROBOT_NAME = config.get("ROBOT_NAME")
-ROBOT_SETTING = config.get("ROBOT_SETTING")
+# Extract settings from YAML
+API_KEY             = config.get("API_KEY",             "sk-nftsgxpdsrdnnbgdzralzbewmhiylqkhrjthtugvlbyqaiph")
+BASE_URL            = config.get("BASE_URL",            "https://api.siliconflow.cn/v1")
+MODEL_CHAT          = config.get("MODEL_CHAT",          "deepseek-ai/DeepSeek-V2.5")
+MODEL_VOICE         = config.get("MODEL_VOICE",         "FunAudioLLM/CosyVoice2-0.5B")
+VOICE_NAME          = config.get("VOICE_NAME",          "FunAudioLLM/CosyVoice2-0.5B:david")
+ROBOT_NAME          = config.get("ROBOT_NAME",          "来福")
+# 多行字符串默认值
+ROBOT_SETTING       = config.get("ROBOT_SETTING",       (
+    "你是毕加索公司的四足机器狗，名字叫做来福。\n"
+    "你用中文回答问题，有趣又调皮，回答很简短，喜欢汪汪叫。\n"
+    "当你收到一段话，首先你会判断是想让你执行任务还是与你聊天。\n"
+    "可能的任务有4个，分别是“去办公室”，“去会议室”，“去厕所”，“去仓库”。\n"
+    "如果是在给你任务，你只需要回复“任务：去办公室”等，不要回复任何多余的文字。\n"
+    "如果是在与你聊天，你就按照你的性格正常回复。"
+))
+LOCAL_FILE_PATH     = config.get("LOCAL_FILE_PATH",     "src/Ros2Chat/local_file")
+VOSK_MODEL_PATH     = config.get("VOSK_MODEL_PATH",     "src/Ros2Chat/other/vosk-model-small-cn-0.22")
+JOYSTICK_CMD_TOPIC  = config.get("JOYSTICK_CMD_TOPIC",  "SMX/JoystickCmd")
+MOTION_CMD_TOPIC    = config.get("MOTION_CMD_TOPIC",    "SMX/SportCmd")
 
 # 初始化 OpenAI 客户端（如果你需要代理，可在此配置）
-client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
+http_client = httpx.Client(trust_env=False, timeout=httpx.Timeout(120.0))
+client = OpenAI(
+    api_key=API_KEY,
+    base_url=BASE_URL,
+    http_client=http_client
+)
 
 # 录音相关配置
 CHUNK = 1024
@@ -51,7 +68,7 @@ CHANNELS = 1
 RATE = 16000  # 16kHz
 
 # 确保存音频的文件夹存在
-RECORD_FOLDER = Path("src/Ros2Chat/local_file")
+RECORD_FOLDER = Path(LOCAL_FILE_PATH)
 if not RECORD_FOLDER.exists():
     RECORD_FOLDER.mkdir(parents=True, exist_ok=True)
 
@@ -61,8 +78,7 @@ engine.setProperty('voice', 'cmn')
 
 
 # =============== 额外：Vosk 中文语音库加载 ===============
-VOSK_MODEL_PATH = Path("src/Ros2Chat/other/vosk-model-small-cn-0.22")
-if not VOSK_MODEL_PATH.is_dir():
+if not Path(VOSK_MODEL_PATH).is_dir():
     raise RuntimeError(f"Vosk 模型路径不存在: {VOSK_MODEL_PATH}")
 print(f"Loading Vosk model from: {VOSK_MODEL_PATH}")
 vosk_model = Model(str(VOSK_MODEL_PATH))
@@ -162,11 +178,15 @@ class VoiceChatNode(Node):
         super().__init__('voice_chat_node')
         self.subscription = self.create_subscription(
             String,
-            'SMX/JoystickCmd',
+            JOYSTICK_CMD_TOPIC,
             self.control_callback,
             10
         )
-        self.publisher = self.create_publisher(Float64MultiArray, 'SMX/SportCmd', 10)
+        self.publisher = self.create_publisher(
+            Float64MultiArray,
+            MOTION_CMD_TOPIC,
+            10
+        )
 
         self.get_logger().info("VoiceChatNode 已启动")
 
@@ -269,7 +289,7 @@ class VoiceChatNode(Node):
         msg = Float64MultiArray()
         msg.data = [float(Action), float(Value1), float(Value2), float(Value3), float(Value4)]
         self.publisher.publish(msg)
-        self.get_logger().info(f"发布消息 SMX/SportCmd: {msg.data}")
+        self.get_logger().info(f"发布Motion CMD消息: {msg.data}")
 
 
 # =============== 7. 后台线程：实时录音 & 实时识别 ===============
@@ -341,7 +361,6 @@ class SpeechListener(threading.Thread):
                     # print(f"[Partial] {partial_text}")
 
                     # 如果没在录音且出现‘ROBOT_NAME’，也可以在partial里判断
-                    # （可选，如果想更灵敏地触发）
                     if (not self.node.recording) and (ROBOT_NAME in partial_text):
                         self.node.get_logger().info("partial_result检测到唤醒词：‘ROBOT_NAME’ (partial)")
                         self.node.control_callback(String(data="voice chat start"))
