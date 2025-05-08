@@ -26,7 +26,7 @@ import yaml
 
 # =============== 1. 配置信息 ===============
 # 读取 YAML 配置文件
-config_file = Path("src/Ros2Chat/config.yaml")
+config_file = Path("/home/smx/ros2_ws/LeggedRobot/src/Ros2Chat/config.yaml")
 if not config_file.exists():
     raise FileNotFoundError(f"配置文件不存在: {config_file}")
 with open(config_file, "r", encoding="utf-8") as file:
@@ -50,8 +50,8 @@ ROBOT_SETTING       = config.get("ROBOT_SETTING",       (
 ))
 LOCAL_FILE_PATH     = config.get("LOCAL_FILE_PATH",     "src/Ros2Chat/local_file")
 VOSK_MODEL_PATH     = config.get("VOSK_MODEL_PATH",     "src/Ros2Chat/other/vosk-model-small-cn-0.22")
-JOYSTICK_CMD_TOPIC  = config.get("JOYSTICK_CMD_TOPIC",  "SMX/JoystickCmd")
-MOTION_CMD_TOPIC    = config.get("MOTION_CMD_TOPIC",    "SMX/SportCmd")
+JOYSTICK_CMD_TOPIC  = config.get("JOYSTICK_CMD_TOPIC",  "TEST/JoystickCmd")
+MOTION_CMD_TOPIC    = config.get("MOTION_CMD_TOPIC",    "TEST/SportCmd")
 
 # 初始化 OpenAI 客户端（如果你需要代理，可在此配置）
 http_client = httpx.Client(trust_env=False, timeout=httpx.Timeout(120.0))
