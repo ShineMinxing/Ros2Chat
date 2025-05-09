@@ -18,5 +18,5 @@ ROBOT_SETTING: |
 # 新增本地文件与主题配置
 LOCAL_FILE_PATH: "src/Ros2Chat/local_file"
 VOSK_MODEL_PATH: "src/Ros2Chat/other/vosk-model-small-cn-0.22"
-JOYSTICK_CMD_TOPIC: "SMX/JoystickCmd"
+JOYSTICK_CMD_TOPIC: "SMX/JoyStringCmd"
 MOTION_CMD_TOPIC: "SMX/SportCmd"

@@ -7,7 +7,7 @@
 - 使用Deepseek APIKey联网获得文字回复（如果连不上关了VPN再试试）
 - 使用pyttsx3本地短文字转语音（超难听），使用CosyVoice2 APIKey联网长文字转语音
 - 信号源1-麦克风：实时监测ROBOT_NAME “来福”，开启录音，静默1s结束录音
-- 信号源2-TEST/JoystickCmd：Ros2Go2Estimator手柄LT+start开启或结束录音
+- 信号源2-TEST/JoyStringCmd：Ros2Go2Estimator手柄LT+start开启或结束录音
 
 ## 📚 补充说明
 - 安装指南总体靠谱......
