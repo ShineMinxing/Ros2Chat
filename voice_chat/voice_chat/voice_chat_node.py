@@ -243,8 +243,8 @@ class VoiceChatNode(Node):
             self.get_logger().info(f"识别结果: {text}")
 
             # 如果识别到的内容较短，可能是简单命令（坐、趴、站）
-            if len(text) < 8:
-                if any(word in text for word in ["坐", "作", "做", "座"]):
+            if len(text) < 10:
+                if any(word in text for word in ["坐", "座"]):
                     self.get_logger().info("检测到命令: 坐")
                     self.publish_sport_cmd(22110000, 0, 0, 0, 0)
                     return
@@ -255,6 +255,18 @@ class VoiceChatNode(Node):
                 elif any(word in text for word in ["占", "站", "战", "绽"]):
                     self.get_logger().info("检测到命令: 站")
                     self.publish_sport_cmd(25100000, 0, 0, 0, 0)
+                    return
+                elif "跟踪" in text:
+                    self.get_logger().info("检测到命令: 开始跟踪")
+                    self.publish_sport_cmd(22110000, 0, 0, 0, 0)
+                    return
+                elif "运动" in text:
+                    self.get_logger().info("检测到命令: 运动跟踪")
+                    self.publish_sport_cmd(22120000, 0, 0, 0, 0)
+                    return
+                elif "开始" in text:
+                    self.get_logger().info("检测到命令: 开始工作")
+                    self.publish_sport_cmd(22100000, 0, 0, 0, 0)
                     return
 
             self.playing_audio = True
