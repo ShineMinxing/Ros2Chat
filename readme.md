@@ -1,8 +1,8 @@
-# Ros2Go2Estimator 🦾
+# Ros2Chat 🦾
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 - 此包是 https://github.com/ShineMinxing/Ros2Go2Estimator 的子包，但能独立编译和运行
-- 在config.yaml中设置参数
+- 在config.yaml中设置您的大模型API_KEY
 - 使用VOSK本地语音转文字
 - 使用Deepseek APIKey联网获得文字回复（如果连不上关了VPN再试试）
 - 使用pyttsx3本地短文字转语音（超难听），使用CosyVoice2 APIKey联网长文字转语音

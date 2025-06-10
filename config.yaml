@@ -1,6 +1,6 @@
-# 长期使用请更换为您的KEY https://cloud.siliconflow.cn/i/5kSHnwpA 注册账号后，主页--API密钥--新建API密钥
+# 请把API_KEY更换为您的， https://cloud.siliconflow.cn/i/5kSHnwpA 注册账号后，主页--API密钥--新建API密钥
 
-API_KEY: "sk-nftsgxpdsrdnnbgdzralzbewmhiylqkhrjthtugvlbyqaiph"
+API_KEY: "sk-nftsgxpdsrdnnbgdzralzbewmhiylqkhrjthtugvlbyqaiph" #这个过期不能用了哦
 BASE_URL: "https://api.siliconflow.cn/v1"
 MODEL_CHAT: "deepseek-ai/DeepSeek-V2.5"
 MODEL_VOICE: "FunAudioLLM/CosyVoice2-0.5B"
