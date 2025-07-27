@@ -11,7 +11,6 @@ import json
 
 import rclpy
 from rclpy.node import Node
-from std_msgs.msg import String
 from std_msgs.msg import Float64MultiArray
 
 import httpx
@@ -177,7 +176,7 @@ class VoiceChatNode(Node):
     def __init__(self):
         super().__init__('voice_chat_node')
         self.subscription = self.create_subscription(
-            String,
+            Float64MultiArray,
             JOYSTICK_CMD_TOPIC,
             self.control_callback,
             10
@@ -201,16 +200,16 @@ class VoiceChatNode(Node):
         self.listener_thread = SpeechListener(self)
         self.listener_thread.start()
 
-    def control_callback(self, msg: String):
+    def control_callback(self, msg: Float64MultiArray):
         """
         处理外部 ROS Topic 命令
         """
-        command = msg.data.strip().lower()
-        if command == "voice chat start":
-            self.start_recording()
-        elif command == "voice chat stop":
-            self.stop_recording()
-
+        if msg.data[0] == 22170000:
+            if not self.recording:
+                self.start_recording()
+            else:
+                self.stop_recording()
+            
     def start_recording(self):
         if not self.recording:
             speak_text_pyttsx3("汪。。。")
@@ -363,7 +362,7 @@ class SpeechListener(threading.Thread):
                     # 如果没在录音且识别里出现‘ROBOT_NAME’，则自动start
                     if (not self.node.recording) and (ROBOT_NAME in text):
                         self.node.get_logger().info("full_result检测到唤醒词：‘ROBOT_NAME’")
-                        self.node.control_callback(String(data="voice chat start"))
+                        self.node.control_callback(Float64MultiArray(data=[22170000.0]))
 
             else:
                 # 正在识别中的部分结果
@@ -375,7 +374,7 @@ class SpeechListener(threading.Thread):
                     # 如果没在录音且出现‘ROBOT_NAME’，也可以在partial里判断
                     if (not self.node.recording) and (ROBOT_NAME in partial_text):
                         self.node.get_logger().info("partial_result检测到唤醒词：‘ROBOT_NAME’ (partial)")
-                        self.node.control_callback(String(data="voice chat start"))
+                        self.node.control_callback(Float64MultiArray(data=[22170000.0]))
 
                     # 如果正在录音，就更新 last_speech_time
                     if self.node.recording:
@@ -386,7 +385,7 @@ class SpeechListener(threading.Thread):
                 time_since_speech = time.time() - self.last_speech_time
                 if time_since_speech > self.SILENCE_TIMEOUT:
                     self.node.get_logger().info("检测到静音结束，自动停止录音")
-                    self.node.control_callback(String(data="voice chat stop"))
+                    self.node.control_callback(Float64MultiArray(data=[22170000.0]))
                     # 重置识别器，防止后续结果残留
                     self.recognizer = KaldiRecognizer(vosk_model, RATE)
                     # 重置最后一次说话时间
