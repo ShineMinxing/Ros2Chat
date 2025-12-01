@@ -70,6 +70,7 @@ pip3 install --user pyaudio pydub pygame vosk pyttsx3 "openai>=1.0"
 # 2. clone & build
 cd ~/ros2_ws/LeggedRobot/src
 git clone https://github.com/ShineMinxing/Ros2Chat.git
+# 把 Ros2Chat/config.yaml中的api_key改为自己的
 cd .. && colcon build --packages-select voice_chat
 source install/setup.bash
 
