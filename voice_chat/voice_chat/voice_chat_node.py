@@ -32,7 +32,7 @@ with open(config_file, "r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
 # Extract settings from YAML
-API_KEY             = config.get("API_KEY",             "sk-nftsgxpdsrdnnbgdzralzbewmhiylqkhrjthtugvlbyqaiph")
+API_KEY             = config.get("API_KEY",             "sk-tzmtjbviotbirpkfnoycljsqffxzgffusrxljvbwnoiosvqm")
 BASE_URL            = config.get("BASE_URL",            "https://api.siliconflow.cn/v1")
 MODEL_CHAT          = config.get("MODEL_CHAT",          "deepseek-ai/DeepSeek-V2.5")
 MODEL_VOICE         = config.get("MODEL_VOICE",         "FunAudioLLM/CosyVoice2-0.5B")
@@ -40,7 +40,7 @@ VOICE_NAME          = config.get("VOICE_NAME",          "FunAudioLLM/CosyVoice2-
 ROBOT_NAME          = config.get("ROBOT_NAME",          "来福")
 # 多行字符串默认值
 ROBOT_SETTING       = config.get("ROBOT_SETTING",       (
-    "你是毕加索公司的四足机器狗，名字叫做来福。\n"
+    "你是光电所的四足机器狗，名字叫做来福。\n"
     "你用中文回答问题，有趣又调皮，回答很简短，喜欢汪汪叫。\n"
     "当你收到一段话，首先你会判断是想让你执行任务还是与你聊天。\n"
     "可能的任务有4个，分别是“去办公室”，“去会议室”，“去厕所”，“去仓库”。\n"
@@ -51,6 +51,17 @@ LOCAL_FILE_PATH     = config.get("LOCAL_FILE_PATH",     "src/Ros2Chat/local_file
 VOSK_MODEL_PATH     = config.get("VOSK_MODEL_PATH",     "src/Ros2Chat/other/vosk-model-small-cn-0.22")
 JOYSTICK_CMD_TOPIC  = config.get("JOYSTICK_CMD_TOPIC",  "NoYamlRead/JoyStringCmd")
 MOTION_CMD_TOPIC    = config.get("MOTION_CMD_TOPIC",    "NoYamlRead/SportCmd")
+
+# =============== 1.1 从本地文件覆盖 API_KEY（如果存在） ===============
+# 优先从 /home/unitree/ros2_ws/LeggedRobot/src/Ros2Chat/local_file/API_KEY 读取
+api_key_file = Path(LOCAL_FILE_PATH) / "API_KEY"
+
+if api_key_file.exists():
+    with open(api_key_file, "r", encoding="utf-8") as f:
+        file_key = f.read().strip()
+    if file_key:
+        API_KEY = file_key
+        print(f"[VoiceChatNode] 从 {api_key_file} 读取 API_KEY 并覆盖 YAML 中的设置")
 
 # 初始化 OpenAI 客户端（如果你需要代理，可在此配置）
 http_client = httpx.Client(trust_env=False, timeout=httpx.Timeout(120.0))
