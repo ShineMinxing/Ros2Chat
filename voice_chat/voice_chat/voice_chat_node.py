@@ -32,7 +32,7 @@ with open(config_file, "r", encoding="utf-8") as file:
     config = yaml.safe_load(file)
 
 # Extract settings from YAML
-API_KEY             = config.get("API_KEY",             "sk-tzmtjbviotbirpkfnoycljsqffxzgffusrxljvbwnoiosvqm")
+API_KEY             = config.get("API_KEY",             "obtain from https://cloud.siliconflow.cn/i/5kSHnwpA")
 BASE_URL            = config.get("BASE_URL",            "https://api.siliconflow.cn/v1")
 MODEL_CHAT          = config.get("MODEL_CHAT",          "deepseek-ai/DeepSeek-V2.5")
 MODEL_VOICE         = config.get("MODEL_VOICE",         "FunAudioLLM/CosyVoice2-0.5B")
@@ -47,6 +47,7 @@ ROBOT_SETTING       = config.get("ROBOT_SETTING",       (
     "如果是在给你任务，你只需要回复“任务：去办公室”等，不要回复任何多余的文字。\n"
     "如果是在与你聊天，你就按照你的性格正常回复。"
 ))
+MAX_CONTEXT_NUMBER  = config.get("MAX_CONTEXT_NUMBER",  5)
 LOCAL_FILE_PATH     = config.get("LOCAL_FILE_PATH",     "src/Ros2Chat/local_file")
 VOSK_MODEL_PATH     = config.get("VOSK_MODEL_PATH",     "src/Ros2Chat/other/vosk-model-small-cn-0.22")
 JOYSTICK_CMD_TOPIC  = config.get("JOYSTICK_CMD_TOPIC",  "NoYamlRead/JoyStringCmd")
@@ -132,21 +133,43 @@ def save_input_audio(frames, sample_width) -> Path:
         wav_path.unlink()
     return mp3_path
 
-
+conversation_history = []
 # =============== 4. 调用大语言模型，获取回复 ===============
 def get_model_response(user_text: str):
+    global conversation_history
+
+    conversation_history.append({
+        "role": "user",
+        "content": user_text
+    })
+
+    history_to_send = conversation_history[-MAX_CONTEXT_NUMBER*2:]  # 不足时自动取全部
+
+    input_message = [{"role": "system", "content": ROBOT_SETTING}] + history_to_send
+
     try:
         response = client.chat.completions.create(
             model=MODEL_CHAT,
-            messages=[
-                {"role": "system", "content": ROBOT_SETTING},
-                {"role": "user", "content": user_text}
-            ],
-            temperature=0.7,
-            max_tokens=256,
+            messages=input_message,
+            temperature=0.5,
+            max_tokens=1024,
             stream=False
         )
         if response and hasattr(response, 'choices'):
+            conversation_history.append({
+                "role": "assistant",
+                "content": response.choices[0].message.content
+            })
+            reasoning = getattr(response.choices[0].message, "reasoning_content", None)
+            usage = getattr(response, "usage", None)
+            if reasoning:
+                print("===== reasoning_content =====")
+                print(reasoning)
+                print("===== end of reasoning =====")
+            if usage is not None:
+                total_tokens = getattr(usage, "total_tokens", None)
+                if total_tokens is not None:
+                    print(f"total tokens={total_tokens}")
             return response.choices[0].message.content
         else:
             return "对不起，模型没有返回有效结果。"
@@ -204,7 +227,7 @@ class VoiceChatNode(Node):
         self.frames_queue = queue.Queue()
         self.sample_width = 2  # 对于 paInt16，每个样本2字节
         self.stop_event = threading.Event()
-        self.playing_audio = False
+        self.restart_listener = False
         self.startrecording = True
 
         # 启动一个后台线程，用于持续录音 + 实时识别
@@ -234,10 +257,10 @@ class VoiceChatNode(Node):
 
     def stop_recording(self):
         if self.recording:
-            self.get_logger().info("停止录音")
             self.recording = False
 
             speak_text_pyttsx3("汪。。。")
+            self.get_logger().info("停止录音")
 
             # 从队列中把录下的帧取出来
             frames = []
@@ -258,19 +281,19 @@ class VoiceChatNode(Node):
                     self.get_logger().info("检测到命令: 坐")
                     self.publish_sport_cmd(22110000, 0, 0, 0, 0)
                     return
-                elif any(word in text for word in ["趴", "爬", "怕"]):
+                elif any(word in text for word in ["趴"]):
                     self.get_logger().info("检测到命令: 趴")
                     self.publish_sport_cmd(25110000, 0, 0, 0, 0)
                     return
-                elif any(word in text for word in ["占", "站", "战", "绽"]):
+                elif any(word in text for word in ["站"]):
                     self.get_logger().info("检测到命令: 站")
                     self.publish_sport_cmd(25100000, 0, 0, 0, 0)
                     return
                 elif "跟踪" in text:
-                    self.get_logger().info("检测到命令: 开始跟踪")
+                    self.get_logger().info("检测到命令: 转动跟踪")
                     self.publish_sport_cmd(22110000, 0, 0, 0, 0)
                     return
-                elif "运动" in text:
+                elif "跟随" in text:
                     self.get_logger().info("检测到命令: 运动跟踪")
                     self.publish_sport_cmd(22120000, 0, 0, 0, 0)
                     return
@@ -279,31 +302,32 @@ class VoiceChatNode(Node):
                     self.publish_sport_cmd(22100000, 0, 0, 0, 0)
                     return
 
-            self.playing_audio = True
             # 调用大语言模型
             response_text = get_model_response(text)
             self.get_logger().info(f"模型回复: {response_text}")
 
             # 先检查是否包含连续"任务"
-            if "任务" in response_text and len(response_text) < 10:
+            if "任务" in response_text:
+                idx = response_text.find("任务")
+                response_text_part = response_text[idx+2 : idx+2+8]
                 # 任务相关的场所判断
-                if "办公室" in response_text:
+                if "办公室" in response_text_part:
                     self.get_logger().info("执行任务: 去办公室")
                     self.publish_sport_cmd(22270000, -1, 0, 0, 0)
-                elif "会议室" in response_text:
+                elif "会议室" in response_text_part:
                     self.get_logger().info("执行任务: 去会议室")
                     self.publish_sport_cmd(22260000, 1, 0, 0, 0)
-                elif "厕所" in response_text:
+                elif "厕所" in response_text_part:
                     self.get_logger().info("执行任务: 去厕所")
                     self.publish_sport_cmd(22270000, 1, 0, 0, 0)
-                elif "仓库" in response_text:
+                elif "仓库" in response_text_part:
                     self.get_logger().info("执行任务: 去仓库")
                     self.publish_sport_cmd(22260000, -1, 0, 0, 0)
 
             # 最终合成语音
             # speak_text_pyttsx3(response_text)
             speak_text_siliconcloud(response_text)
-            self.playing_audio = False
+            self.restart_listener = True
         else:
             self.get_logger().warn("当前未在录音状态")
 
@@ -312,6 +336,7 @@ class VoiceChatNode(Node):
         msg.data = [float(Action), float(Value1), float(Value2), float(Value3), float(Value4)]
         self.publisher.publish(msg)
         self.get_logger().info(f"发布Motion CMD消息: {msg.data}")
+        self.restart_listener = True
 
 
 # =============== 7. 后台线程：实时录音 & 实时识别 ===============
@@ -349,11 +374,24 @@ class SpeechListener(threading.Thread):
 
     def run(self):
         while True:
-            if self.node.playing_audio:
-                time.sleep(0.1)
+            data = self.stream.read(CHUNK)
+
+            if self.node.restart_listener:
+                self.node.restart_listener = False
+                while not self.node.frames_queue.empty():
+                    self.node.frames_queue.get_nowait()
+                while True:
+                    available_frames = self.stream.get_read_available()
+                    if available_frames <= 0:
+                        break
+                    frames_to_read = min(available_frames, CHUNK)
+                    _ = self.stream.read(frames_to_read, exception_on_overflow=False)
+
+                self.node.frames_queue.put(data) #舍弃这段录音
+                self.recognizer = KaldiRecognizer(vosk_model, RATE)
+                self.last_speech_time = time.time()
                 continue
 
-            data = self.stream.read(CHUNK)
             # 如果正在录音，把原始音频先存起来
             if self.node.recording and self.node.startrecording:
                 self.node.startrecording = False
@@ -381,12 +419,11 @@ class SpeechListener(threading.Thread):
                 partial_text = json.loads(partial_result).get("partial", "")
                 if partial_text:
                     # print(f"[Partial] {partial_text}")
-
                     # 如果没在录音且出现‘ROBOT_NAME’，也可以在partial里判断
                     if (not self.node.recording) and (ROBOT_NAME in partial_text):
                         self.node.get_logger().info("partial_result检测到唤醒词：‘ROBOT_NAME’ (partial)")
+                        self.recognizer = KaldiRecognizer(vosk_model, RATE)
                         self.node.control_callback(Float64MultiArray(data=[22170000.0]))
-
                     # 如果正在录音，就更新 last_speech_time
                     if self.node.recording:
                         self.last_speech_time = time.time()
@@ -397,9 +434,7 @@ class SpeechListener(threading.Thread):
                 if time_since_speech > self.SILENCE_TIMEOUT:
                     self.node.get_logger().info("检测到静音结束，自动停止录音")
                     self.node.control_callback(Float64MultiArray(data=[22170000.0]))
-                    # 重置识别器，防止后续结果残留
                     self.recognizer = KaldiRecognizer(vosk_model, RATE)
-                    # 重置最后一次说话时间
                     self.last_speech_time = time.time()
 
 

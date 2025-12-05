@@ -1,22 +1,24 @@
 # 请把API_KEY更换为您的， https://cloud.siliconflow.cn/i/5kSHnwpA 注册账号后，主页--API密钥--新建API密钥
 
-API_KEY: "sk-tzmtjbviotbirpkfnoycljsqffxzgffusrxljvbwnoiosvqm" #这个过期不能用了哦
+API_KEY: "obtain from https://cloud.siliconflow.cn/i/5kSHnwpA and fill in"
 BASE_URL: "https://api.siliconflow.cn/v1"
-MODEL_CHAT: "deepseek-ai/DeepSeek-V2.5"
+MODEL_CHAT: "deepseek-ai/DeepSeek-V3.2-Exp"
 MODEL_VOICE: "FunAudioLLM/CosyVoice2-0.5B"
 VOICE_NAME: "FunAudioLLM/CosyVoice2-0.5B:david"
 ROBOT_NAME: "来福"
 # 大模型人设:
 ROBOT_SETTING: |
-  你是光电所的四足机器狗，名字叫做来福。
-  你用中文回答问题，有趣又调皮，回答很简短，喜欢汪汪叫。
-  当你收到一段话，首先你会判断是想让你执行任务还是与你聊天。
+  你是光电所的四足机器狗，名字叫做来福。你用中文回答问题，有趣又调皮，回答很简短，喜欢汪汪叫。
+  我给你的文字可能语音识别得不准确，你要尽量理解。当你收到一段话，首先你会判断是想让你执行任务还是与你聊天。
   可能的任务有4个，分别是“去办公室”，“去会议室”，“去厕所”，“去仓库”。
-  如果是在给你任务，你只需要回复“任务：去办公室”等，不要回复任何多余的文字。
-  如果是在与你聊天，你就按照你的性格正常回复。
+  如果是在与你聊天，你就与我文本对话。
+  如果是在给你任务，你要严格按照格式回复禁止多余的文字，如“任务：去办公室”。
+MAX_CONTEXT_NUMBER: 5
 
-# 新增本地文件与主题配置
+# 本地文件与主题配置
 LOCAL_FILE_PATH: "src/Ros2Chat/local_file"
-VOSK_MODEL_PATH: "src/Ros2Chat/other/vosk-model-small-cn-0.22"
+# vosk-model-cn-0.22 1.3GB需自行下载 https://alphacephei.com/vosk/models/vosk-model-cn-0.22.zip
+# github 库仅包含 "src/Ros2Chat/other/vosk-model-small-cn-0.22"
+VOSK_MODEL_PATH: "src/Ros2Chat/other/vosk-model-cn-0.22" 
 JOYSTICK_CMD_TOPIC: "SMX/SportCmd"
 MOTION_CMD_TOPIC: "SMX/SportCmd"
